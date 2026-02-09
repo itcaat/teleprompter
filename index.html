@@ -378,14 +378,45 @@
     color: #fff;
   }
 
-  #menu .prompter-section input[type="color"] {
-    width: 36px;
-    height: 36px;
-    padding: 2px;
-    border: none;
-    border-radius: 8px;
+  #menu .prompter-section .prompter-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    color: var(--text);
+    user-select: none;
+  }
+
+  #menu .prompter-section .prompter-checkbox-label input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--outline);
+  }
+
+  #menu .prompter-section .toolbar-btn.color-btn-wrap {
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    #menu .prompter-section .toolbar-btn.color-btn-wrap {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  #menu .prompter-section .color-btn-wrap input[type="color"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    opacity: 0;
   }
 
   #menu .prompter-section .prompter-speed-row {
@@ -458,7 +489,7 @@
     transform: scale(-1, -1);
   }
 </style>
-<article contenteditable="plaintext-only" spellcheck autofocus></article>
+<article contenteditable="plaintext-only" autofocus></article>
 <button id="teleprompter-play" class="noprint" type="button" title="Запустить телетекст" aria-label="Запустить телетекст">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
 </button>
@@ -509,7 +540,15 @@
       <button type="button" class="toolbar-btn" id="font-plus" title="Увеличить шрифт" aria-label="Увеличить шрифт">A+</button>
       <button type="button" class="toolbar-btn" id="mirror-h" title="Отразить по горизонтали" aria-label="Отразить по горизонтали">⇄</button>
       <button type="button" class="toolbar-btn" id="mirror-v" title="Отразить по вертикали" aria-label="Отразить по вертикали">⇅</button>
-      <input type="color" id="bg-color" title="Цвет фона" aria-label="Цвет фона" value="#000000">
+      <span class="toolbar-btn color-btn-wrap" id="bg-color-wrap" title="Background color" aria-hidden="true">
+        <input type="color" id="bg-color" title="Background color" aria-label="Background color" value="#000000">
+      </span>
+    </div>
+    <div class="prompter-row prompter-spellcheck-row">
+      <label class="prompter-checkbox-label">
+        <input type="checkbox" id="spellcheck-toggle" aria-label="Spell check">
+        <span>Spell check</span>
+      </label>
     </div>
     <div class="prompter-row prompter-speed-row">
       <span class="speed-icon speed-slow" title="Медленнее" aria-hidden="true">
@@ -574,7 +613,8 @@
       bgColor: '#000000',
       mirrorH: false,
       mirrorV: false,
-      speed: SPEED_DEFAULT
+      speed: SPEED_DEFAULT,
+      spellcheck: false
     }
 
     try {
@@ -586,6 +626,7 @@
         state.mirrorH = !!parsed.mirrorH
         state.mirrorV = !!parsed.mirrorV
         state.speed = Math.max(SPEED_MIN, Math.min(SPEED_MAX, parsed.speed ?? SPEED_DEFAULT))
+        state.spellcheck = !!parsed.spellcheck
       }
     } catch (e) {}
 
@@ -621,17 +662,22 @@
     const fontMin = document.getElementById('font-minus')
     const fontPlus = document.getElementById('font-plus')
     const bgColorInput = document.getElementById('bg-color')
+    const bgColorWrap = document.getElementById('bg-color-wrap')
     const mirrorHBtn = document.getElementById('mirror-h')
     const mirrorVBtn = document.getElementById('mirror-v')
     const speedSlider = document.getElementById('speed-slider')
+    const spellcheckToggle = document.getElementById('spellcheck-toggle')
     const playBtn = document.getElementById('teleprompter-play')
     const playIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
     const pauseIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
 
     bgColorInput.value = state.bgColor
+    bgColorWrap.style.backgroundColor = state.bgColor
     speedSlider.value = state.speed
     mirrorHBtn.classList.toggle('active', state.mirrorH)
     mirrorVBtn.classList.toggle('active', state.mirrorV)
+    spellcheckToggle.checked = state.spellcheck
+    article.setAttribute('spellcheck', state.spellcheck ? 'true' : 'false')
     applyFontSize()
     applyBgColor()
     updateArticleMirror()
@@ -650,6 +696,7 @@
     })
     bgColorInput.addEventListener('input', () => {
       state.bgColor = bgColorInput.value
+      bgColorWrap.style.backgroundColor = state.bgColor
       saveState()
       applyBgColor()
       if (prompterPlaying) applyPrompterStyles()
@@ -669,6 +716,11 @@
     speedSlider.addEventListener('input', () => {
       state.speed = +speedSlider.value
       saveState()
+    })
+    spellcheckToggle.addEventListener('change', () => {
+      state.spellcheck = spellcheckToggle.checked
+      saveState()
+      article.setAttribute('spellcheck', state.spellcheck ? 'true' : 'false')
     })
 
     function updateArticleMirror() {
