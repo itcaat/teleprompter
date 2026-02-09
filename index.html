@@ -610,8 +610,6 @@
 <div id="key-debug" class="noprint" aria-hidden="true">Press any key (e.g. joystick)</div>
 <div id="notification" class="noprint"></div>
 <script>
-  const APP_VERSION = '2026-02-09'
-
   initUI()
 
   const article = document.querySelector('article')
@@ -624,7 +622,13 @@
   addEventListener('DOMContentLoaded', () => {
     load()
     const ver = document.getElementById('menu-version')
-    if (ver) ver.textContent = 'Version: ' + APP_VERSION
+    if (ver) {
+      fetch('version.json').then(r => r.ok ? r.json() : {}).then(data => {
+        ver.textContent = 'Version: ' + (data.version || 'dev')
+      }).catch(() => {
+        ver.textContent = 'Version: dev'
+      })
+    }
   })
   addEventListener('hashchange', load)
   addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))

@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate version.json
+        run: echo "{\"version\":\"$(git rev-parse --short HEAD)\"}" > version.json
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
