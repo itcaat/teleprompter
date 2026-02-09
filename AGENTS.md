@@ -12,12 +12,12 @@
 1. **Storage**
    - On load: content comes from `location.hash` if present, else from `localStorage.getItem('hash')`.
    - On input/blur: content is compressed, written to `location.hash`, and saved to `localStorage`.
-   - Data in the hash is **deflate-compressed**, then **base64url**-encoded. First line of stored payload can be custom CSS in a `style` attribute (after a `\x00` separator).
+   - Hash format (shorter = better for QR): **`#b`** + base64url(brotli) when Brotli is supported; **`#z`** + base86(deflate) otherwise; legacy **`#`** + base64url(deflate) for old links. Payload is content + optional `\x00` + style.
 
 2. **Compression**
-   - `compress(string)` → deflate-raw → base64url (no padding).
-   - `decompress(b64)` → base64url decode → inflate-raw → string.
-   - Uses `CompressionStream` / `DecompressionStream` and `Uint8Array.toBase64()` / `fromBase64()` (with `alphabet: 'base64url'`).
+   - `compress(string)` → try Brotli → `b`+base64url; else deflate-raw → base86 (URL-safe) → `z`+encoded.
+   - `decompress(payload)` → if `b` prefix: brotli; if `z`: base86 decode → inflate; else base64url → inflate (legacy).
+   - Uses `CompressionStream`/`DecompressionStream` (deflate-raw or brotli), and base64url or custom base86 for encoding.
 
 3. **Editor**
    - One `<article contenteditable="plaintext-only">` as the main editor.

@@ -840,7 +840,7 @@
     document.title = match?.[1] ?? 'Textarea'
   }
 
-  async function compress(string) {
+  async function compressDeflate(string) {
     const byteArray = new TextEncoder().encode(string)
     const stream = new CompressionStream('deflate-raw')
     const writer = stream.writable.getWriter()
@@ -850,7 +850,7 @@
     return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
   }
 
-  async function decompress(b64) {
+  async function decompressDeflate(b64) {
     const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
     const stream = new DecompressionStream('deflate-raw')
     const writer = stream.writable.getWriter()
@@ -858,6 +858,92 @@
     writer.close()
     const buffer = await new Response(stream.readable).arrayBuffer()
     return new TextDecoder().decode(buffer)
+  }
+
+  async function compressBrotli(string) {
+    const byteArray = new TextEncoder().encode(string)
+    const stream = new CompressionStream('brotli')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
+  }
+
+  async function decompressBrotli(b64) {
+    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
+    const stream = new DecompressionStream('brotli')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new TextDecoder().decode(buffer)
+  }
+
+  // URL-safe base85: 5 chars per 4 bytes (shorter than base64's 4 chars per 3 bytes)
+  const B85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-~_!'()*+,;=:@/?[]^`#<>"
+  const B85_BASE = 86
+  function encodeBase85(bytes) {
+    let s = ''
+    const pad = (4 - (bytes.length + 2) % 4) % 4
+    const total = 2 + bytes.length + pad
+    const buf = new Uint8Array(total)
+    buf[0] = bytes.length >>> 8
+    buf[1] = bytes.length & 255
+    buf.set(bytes, 2)
+    for (let i = 0; i < total; i += 4) {
+      let n = (buf[i] << 24) | (buf[i + 1] << 16) | (buf[i + 2] << 8) | buf[i + 3]
+      for (let j = 0; j < 5; j++) {
+        s += B85[n % B85_BASE]
+        n = (n / B85_BASE) | 0
+      }
+    }
+    return s
+  }
+  function decodeBase85(s) {
+    const buf = []
+    for (let i = 0; i < s.length; i += 5) {
+      let n = 0
+      for (let j = 0; j < 5; j++) n += B85.indexOf(s[i + j]) * Math.pow(B85_BASE, j)
+      buf.push((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255)
+    }
+    const len = (buf[0] << 8) | buf[1]
+    return new Uint8Array(buf.slice(2, 2 + len))
+  }
+
+  async function compress(string) {
+    try {
+      return 'b' + await compressBrotli(string)
+    } catch (e) {
+      const bytes = await compressDeflateToBytes(string)
+      return 'z' + encodeBase85(bytes)
+    }
+  }
+
+  async function compressDeflateToBytes(string) {
+    const byteArray = new TextEncoder().encode(string)
+    const stream = new CompressionStream('deflate-raw')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new Uint8Array(buffer)
+  }
+
+  async function decompress(payload) {
+    if (payload.startsWith('b')) {
+      return await decompressBrotli(payload.slice(1))
+    }
+    if (payload.startsWith('z')) {
+      const bytes = decodeBase85(payload.slice(1))
+      const stream = new DecompressionStream('deflate-raw')
+      const writer = stream.writable.getWriter()
+      writer.write(bytes)
+      writer.close()
+      const buffer = await new Response(stream.readable).arrayBuffer()
+      return new TextDecoder().decode(buffer)
+    }
+    return await decompressDeflate(payload)
   }
 
   function debounce(ms, fn) {
