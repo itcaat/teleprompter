@@ -849,6 +849,19 @@
       requestAnimationFrame(step)
     }
 
+    function smoothScrollTo(y) {
+      const start = window.scrollY
+      const startTime = performance.now()
+      const dy = y - start
+      function step(now) {
+        const t = Math.min((now - startTime) / JUMP_MS, 1)
+        const ease = 1 - (1 - t) * (1 - t)
+        window.scrollTo(0, start + dy * ease)
+        if (t < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    }
+
     document.addEventListener('keydown', e => {
       if (!document.body.classList.contains('prompter-mode')) return
       const el = document.getElementById('key-debug')
@@ -857,14 +870,22 @@
         el.textContent = 'key: ' + JSON.stringify(e.key) + '\nkeyCode: ' + code + '\nwhich: ' + e.which + '\ncode: ' + (e.code || '')
       }
       const code = e.keyCode ?? e.which
-      const isUp = e.key === 'ArrowUp' || e.key === 'Up' || code === 38 || code === 19
-      const isDown = e.key === 'ArrowDown' || e.key === 'Down' || code === 40 || code === 20
+      const isUp = e.key === 'ArrowUp' || e.key === 'Up' || e.key === 'MediaFastForward' || code === 38 || code === 19 || code === 228
+      const isDown = e.key === 'ArrowDown' || e.key === 'Down' || e.key === 'MediaRewind' || code === 40 || code === 20 || code === 227
+      const isLeft = e.key === 'MediaTrackPrevious' || code === 177
+      const isRight = e.key === 'MediaTrackNext' || code === 176
       if (isUp) {
         e.preventDefault()
         smoothScrollBy(-JUMP_PX)
       } else if (isDown) {
         e.preventDefault()
         smoothScrollBy(JUMP_PX)
+      } else if (isLeft) {
+        e.preventDefault()
+        smoothScrollTo(0)
+      } else if (isRight) {
+        e.preventDefault()
+        smoothScrollTo(document.documentElement.scrollHeight)
       }
     })
   }
