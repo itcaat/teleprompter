@@ -28,6 +28,11 @@ jobs:
       - name: Generate version.json
         run: echo "{\"version\":\"$(git rev-parse --short HEAD)\"}" > version.json
 
+      - name: Set cache-busting in service worker
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          sed -i "s/DEPLOY_SHA/$SHA/g" sw.js
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

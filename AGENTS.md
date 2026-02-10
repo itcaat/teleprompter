@@ -67,7 +67,7 @@
 - Don't break **base64url** and **deflate-raw** format; existing shared links must keep working.
 - **qr.html** must continue to use `location.hash` and the same origin/domain (e.g. `https://readmode.ru /`) when building the URL for the QR.
 - When touching the Editor or selection, be careful with **contenteditable** and the way **parseMarkdown** replaces content (selection save/restore must work after re-renders).
-- Service worker **CACHE_NAME** in `sw.js` is versioned (e.g. `textarea-2026-01-07`); bump it when you want cache invalidation.
+- Service worker **CACHE_NAME** in `sw.js` uses placeholder `DEPLOY_SHA`; the deploy workflow replaces it with the git short hash so each deploy gets a new cache and users get fresh content.
 - **Teleprompter**: Settings stay in `localStorage` only (key `teleprompter`); do not put them in the URL hash. Keep live preview for font size, background, and mirror. Play button must toggle to pause icon when in `prompter-mode` and stay in the same place; menu button stays visible and semi-transparent in prompter mode. Speed slider range: min 20, max 500 (constants `SPEED_MIN`, `SPEED_MAX` and input `min`/`max` must match). Assets for speed icons live in `assets/` and are referenced as `assets/snail-slow.png`, `assets/lightning-fast.png`.
 
 ## Quick reference
