@@ -854,19 +854,6 @@
       requestAnimationFrame(step)
     }
 
-    function smoothScrollTo(y) {
-      const start = window.scrollY
-      const startTime = performance.now()
-      const dy = y - start
-      function step(now) {
-        const t = Math.min((now - startTime) / JUMP_MS, 1)
-        const ease = 1 - (1 - t) * (1 - t)
-        window.scrollTo(0, start + dy * ease)
-        if (t < 1) requestAnimationFrame(step)
-      }
-      requestAnimationFrame(step)
-    }
-
     document.addEventListener('keydown', e => {
       if (!document.body.classList.contains('prompter-mode')) return
       const el = document.getElementById('key-debug')
@@ -889,10 +876,14 @@
         smoothScrollBy(JUMP_PX)
       } else if (isLeft) {
         e.preventDefault()
-        smoothScrollTo(0)
+        state.speed = Math.max(SPEED_MIN, state.speed - 20)
+        speedSlider.value = state.speed
+        saveState()
       } else if (isRight) {
         e.preventDefault()
-        smoothScrollTo(document.documentElement.scrollHeight)
+        state.speed = Math.min(SPEED_MAX, state.speed + 20)
+        speedSlider.value = state.speed
+        saveState()
       }
     })
   }
